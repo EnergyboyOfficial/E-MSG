@@ -1,0 +1,19 @@
+{
+  "name": "e-msg",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.18.2",
+    "http": "^0.0.1-security",
+    "lowdb": "^1.0.0",
+    "socket.io": "^4.7.2"
+  },
+  "description": ""
+}

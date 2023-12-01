@@ -1,0 +1,33 @@
+<!-- public/landing.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App - Enter Your Username</title>
+  <link rel="stylesheet" href="/landing.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to the Chat App!</h2>
+    <p>Please enter your username to join the chat:</p>
+    <input id="usernameInput" placeholder="Enter your username" />
+    <br>
+    <button onclick="login()">Enter Chat</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    function login() {
+      const usernameInput = document.getElementById('usernameInput');
+      const username = usernameInput.value.trim();
+      if (username !== '') {
+        // Redirect to the chat page with the username as a query parameter
+        window.location.href = `/chat?username=${encodeURIComponent(username)}`;
+      }
+    }
+  </script>
+</body>
+</html>

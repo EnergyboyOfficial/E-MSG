@@ -1,0 +1,97 @@
+<!-- public/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Room</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to the Chat Room, <span id="username"></span>!</h2>
+    <ul id="messages"></ul>
+    <div id="userList"></div>
+    <input id="messageInput" autocomplete="off" onkeydown="handleKeyPress(event)" />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentUser;
+
+    // Function to add a message to the UI
+    function addMessage(message) {
+      const messages = document.getElementById('messages');
+      const li = document.createElement('li');
+      li.textContent = `${message.user.username}: ${message.content}`;
+      messages.appendChild(li);
+    }
+
+    // Load existing messages when connecting
+    socket.on('loadMessages', (messages) => {
+      messages.forEach((message) => {
+        addMessage(message);
+      });
+    });
+
+    // Handle incoming messages
+    socket.on('message', (message) => {
+      addMessage(message);
+    });
+
+    // Handle user connections
+    socket.on('userConnected', (user) => {
+      const userList = document.getElementById('userList');
+      const div = document.createElement('div');
+      div.textContent = `${user.username} connected`;
+      userList.appendChild(div);
+    });
+
+    // Handle user disconnections
+    socket.on('userDisconnected', (user) => {
+      const userList = document.getElementById('userList');
+      const div = document.createElement('div');
+      div.textContent = `${user.username} disconnected`;
+      userList.appendChild(div);
+    });
+
+    function sendMessage() {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value;
+      if (message.trim() !== '') {
+        socket.emit('message', message);
+        messageInput.value = '';
+      }
+    }
+
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        if (!currentUser) {
+          login();
+        } else {
+          sendMessage();
+        }
+      }
+    }
+
+    function login() {
+      // Extract the username from the query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      currentUser = urlParams.get('username');
+
+      if (currentUser) {
+        document.getElementById('username').textContent = currentUser;
+        socket.emit('login', currentUser);
+
+        // Fetch and display existing messages
+        socket.emit('loadMessages', currentUser);
+      }
+    }
+    
+    // Auto-login when the page loads
+    window.onload = login;
+  </script>
+</body>
+</html>
