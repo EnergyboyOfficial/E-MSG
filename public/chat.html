@@ -8,90 +8,85 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
-    <h2>Welcome to the Chat Room, <span id="username"></span>!</h2>
-    <ul id="messages"></ul>
-    <div id="userList"></div>
-    <input id="messageInput" autocomplete="off" onkeydown="handleKeyPress(event)" />
-    <button onclick="sendMessage()">Send</button>
+  <div id="app" class="container">
+    <h2>Welcome to the Chat Room, {{ currentUser }}!</h2>
+    <ul id="messages">
+      <li v-for="(message, index) in messages" :key="index">
+        {{ message.user.username }}: {{ message.content }}
+      </li>
+    </ul>
+    <div id="userList">
+      <div v-for="(user, index) in userList" :key="index">{{ user.username }} connected</div>
+    </div>
+    <input v-model="messageInput" autocomplete="off" @keydown.enter="handleKeyPress" />
+    <button @click="sendMessage">Send</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
-    let currentUser;
-
-    // Function to add a message to the UI
-    function addMessage(message) {
-      const messages = document.getElementById('messages');
-      const li = document.createElement('li');
-      li.textContent = `${message.user.username}: ${message.content}`;
-      messages.appendChild(li);
-    }
-
-    // Load existing messages when connecting
-    socket.on('loadMessages', (messages) => {
-      messages.forEach((message) => {
-        addMessage(message);
-      });
+    new Vue({
+      el: '#app',
+      data: {
+        currentUser: '',
+        messageInput: '',
+        messages: [],
+        userList: []
+      },
+      mounted() {
+        this.login(); // Auto-login when the page loads
+      },
+      methods: {
+        addMessage(message) {
+          this.messages.push(message);
+        },
+        sendMessage() {
+          if (this.messageInput.trim() !== '') {
+            socket.emit('message', this.messageInput);
+            this.messageInput = '';
+          }
+        },
+        handleKeyPress(event) {
+          if (!this.currentUser && event.key === 'Enter') {
+            this.login();
+          } else if (event.key === 'Enter') {
+            this.sendMessage();
+          }
+        },
+        login() {
+          const usernameInput = prompt('Enter your username:');
+          if (usernameInput && usernameInput.trim() !== '') {
+            this.currentUser = usernameInput.trim();
+            socket.emit('login', this.currentUser);
+            socket.emit('loadMessages', this.currentUser);
+          } else {
+            alert('Username cannot be empty. Please try again.');
+          }
+        }
+      }
     });
+
+    const socket = io();
 
     // Handle incoming messages
     socket.on('message', (message) => {
-      addMessage(message);
+      this.addMessage(message);
     });
 
     // Handle user connections
     socket.on('userConnected', (user) => {
-      const userList = document.getElementById('userList');
-      const div = document.createElement('div');
-      div.textContent = `${user.username} connected`;
-      userList.appendChild(div);
+      this.userList.push(user);
     });
 
     // Handle user disconnections
     socket.on('userDisconnected', (user) => {
-      const userList = document.getElementById('userList');
-      const div = document.createElement('div');
-      div.textContent = `${user.username} disconnected`;
-      userList.appendChild(div);
+      this.userList = this.userList.filter((u) => u.id !== user.id);
     });
 
-    function sendMessage() {
-      const messageInput = document.getElementById('messageInput');
-      const message = messageInput.value;
-      if (message.trim() !== '') {
-        socket.emit('message', message);
-        messageInput.value = '';
-      }
-    }
-
-    function handleKeyPress(event) {
-      if (event.key === 'Enter') {
-        if (!currentUser) {
-          login();
-        } else {
-          sendMessage();
-        }
-      }
-    }
-
-    function login() {
-      // Extract the username from the query parameter
-      const urlParams = new URLSearchParams(window.location.search);
-      currentUser = urlParams.get('username');
-
-      if (currentUser) {
-        document.getElementById('username').textContent = currentUser;
-        socket.emit('login', currentUser);
-
-        // Fetch and display existing messages
-        socket.emit('loadMessages', currentUser);
-      }
-    }
-    
-    // Auto-login when the page loads
-    window.onload = login;
+    // Load existing messages when connecting
+    socket.on('loadMessages', (messages) => {
+      this.messages = messages;
+    });
   </script>
 </body>
 </html>
